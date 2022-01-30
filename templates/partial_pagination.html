@@ -1,0 +1,30 @@
+{{define "pagination"}} 
+
+{{if .TotalHits}}
+<ul class="pagination justify-content-center pagination-sm">
+
+    {{range $page := .pages}}
+    <li class="page-item{{if eq $page.Start 0}} disabled{{end}}">
+        {{if $page.Active}}
+        <a class="page-link" href="#" onclick="gotoPage({{$page.Start}}-10)">Önceki</a>
+        {{end}}
+    </li>
+    {{end}}
+    
+    {{range $page := .pages}}
+    <li class="page-item{{if $page.Active}} active{{end}} ">
+        <a class="page-link" href="#" onclick="gotoPage({{$page.Start}})">{{$page.Page}}</a>
+    </li>
+    {{end}}
+    <li class="page-item">
+        {{range $page := .pages}}
+        <li class="page-item{{if lt (len $.pages) 2}} disabled{{end}}">
+            {{if $page.Active}}
+            <a class="page-link" href="#" onclick="gotoPage({{$page.Start}}+10)">Sonraki</a>
+            {{end}}
+        </li>
+        {{end}}
+</ul>
+{{end}}
+
+{{end}}

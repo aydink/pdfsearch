@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Kitap Arama Motoru</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/bootstrap-4/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #fff;
+        }
+
+        .card {
+            background-color: #ffffff;
+        }
+
+    </style>
+</head>
+
+<body style="padding-top:60px">
+    <div class="container">
+        <nav class="navbar fixed-top navbar-light bg-light py-2">
+            <a class="navbar-brand">Kitap arama motoru</a>
+
+            <div class="col-lg-9 py-0">
+                
+            </div>
+
+            <a class="navbar-brand" href="/api/addbook">Kitap ekle</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-2 rounded-0"></div>
+            <div class="col-lg-8 rounded-0">
+                <div class="col-xs-4 text-center">
+                    <img src="/static/asset/logo.png"/>
+                </div>
+
+                <form class="" method="GET" action="/search/">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="q" placeholder="mazeret izni">&nbsp;
+                        <button class="btn btn-secondary btn-lg" type="submit" name="w" value="content">&nbsp;&nbsp; Ara &nbsp;&nbsp;</button>&nbsp;                        
+                    </div>                    
+                </form>
+                <br>
+                <br>
+                <div style="text-align: center;"><em>© 2021 Copyright: Aydın Kılıç</em></div>
+
+            </div>
+            <div class="col-lg-2 rounded-0"></div>
+            
+        </div>
+    </div>
+
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="/static/jquery/jquery-3.2.1.slim.min.js"></script>
+    <script src="/static/popper/popper.min.js"></script>
+    <script src="/static/bootstrap-4/js/bootstrap.min.js"></script>
+    <script>
+
+        $(document).ready(function(){
+            $("input:first").focus();
+        });
+
+
+    </script>
+</body>
+
+</html>

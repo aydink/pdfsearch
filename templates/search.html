@@ -1,0 +1,278 @@
+{{define "search"}}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Kitap Arama Motoru</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/bootstrap-4/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+
+        div.card {
+            border: none;
+        }
+
+        div.facet-header {
+            font-size: large;
+            font-weight: bold;
+        }
+
+        div.facet-item {
+            cursor: pointer;
+        }
+
+        .facet-item:hover {
+            background: #ddd;
+            /* make this whatever you want */
+        }
+
+        span.facet-count {
+            color: #bbb;
+        }
+
+        div.hit-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: blue;
+        }
+
+        div.hit-content {
+            margin-bottom: 1em;
+        }
+
+        em {
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        div.book-title {
+            font-size: 16px;
+            font-weight: normal;  
+            line-height: 2em;
+        }
+
+        b {           
+            
+            font-weight: bold;
+        }
+
+        dd>em {
+            font-weight: 300;
+            font-style: italic;
+            color: lightblue;
+        }
+
+        .alert {
+            display: inline-block;
+        }
+
+        a {
+            color:rgb(26, 13, 171);
+        }
+    </style>
+</head>
+
+<body style="padding-top:60px">
+   
+    {{template "navbar_search" .}}    
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-2 card rounded-0">
+                <div class="col-lg-12 px-0">
+                    {{template "facet" .}}  
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="col-lg-12 card rounded-0">
+                    <div class="row px-1">
+                        {{range .filters}}
+                        <div id="filter-{{index . 0}}" class="alert alert-secondary alert-dismissable mx-1">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            {{index . 1}}: {{index . 2}} &nbsp;
+                        </div>
+                        {{end}}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-12 card rounded-0">
+                            <div>
+                                {{if .suggest_text}}
+                                    <em>Bunu mu demek istediniz?</em> <a href="/search/?q={{.suggest_text}}">{{.suggest_text}}</a>
+                                {{end}}
+
+                                <em>Bulunan kayıt sayısı:</em> {{.TotalHits}}
+                            </div>
+                  
+                            <br>
+                            {{range $index, $hit := .hits}}
+                            <br>
+                            <h4>
+                                <a href="/page?page={{$hit.Page.Id}}&q={{$.q}}">{{$hit.Book.Title}}</a>
+                            </h4>
+                            <div class="hit-content">{{tohtml $hit.HlText}}</div>
+                            
+                            
+                            {{else}}
+                            <div>Aradığınız <strong>{{.q}}</strong> ile ilgili hiçbir arama sonucu mevcut değil.</div>
+                            <ul>
+                                <li>Tüm kelimeleri doğru yazdığınızdan emin olun.</li>
+                                <li>Başka anahtar kelimeleri deneyin.</li>
+                                <li>Daha genel anahtar kelimeleri deneyin.</li>
+                            </ul>
+                            {{end}} 
+                            
+                            {{template "pagination" .}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 card rounded-0">
+                {{template "definition" .}}
+                <br><br>
+                {{if .titles}}
+                <h5>Dokümanlar</h5>
+                {{range .titles}}
+                <div class="book-title">
+                    - <a href="/download?book={{.Hash}}">{{.Title | tohtml}}</a>
+                </div>
+                {{end}}
+                {{end}}
+            </div>
+        </div>
+
+
+        <!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="/static/jquery/jquery-3.2.1.slim.min.js"></script>
+        <script src="/static/popper/popper.min.js"></script>
+        <script src="/static/bootstrap-4/js/bootstrap.min.js"></script>
+        <script>
+
+            var filters = [];
+            {{ range.filters }} filters.push({ "key": "{{index . 0}}", "value": "{{index . 2}}" });
+            {{ end }}
+
+            function addFilter(filter) {
+
+                for (i = 0; i < filters.length; i++) {
+                    if (filter.key == filters[i].key) {
+                        return;
+                    }
+                }
+                filters.push(filter);
+                console.log(filters);
+
+                // refresh page with new filters
+                refreshFilters();
+            }
+
+            function removeFilter(key) {
+                var temp = [];
+                for (i = 0; i < filters.length; i++) {
+                    console.log("key:", key, filters[i]);
+                    if (key != filters[i].key) {
+                        temp.push(filters[i]);
+                    }
+                }
+
+                filters = temp;
+
+                console.log(filters);
+                
+                // refresh page with new filters
+                refreshFilters();
+            }
+
+            function refreshFilters() {
+                // create map of querystring parameters, beware no duplicates allowed.
+                query = parseQuery(location.search);
+                delete query["genre"];
+                delete query["department"];
+                delete query["year"];
+                delete query["category"];
+
+                for (i = 0; i < filters.length; i++) {
+                    //url = url + encodeURIComponent(filters[i].key) + "/" + encodeURIComponent(filters[i].value) + "/";
+                    query[filters[i].key] = filters[i].value;
+
+                }
+                // if exist remove start parameter
+                delete query["start"];
+
+                window.location = location.protocol + '//' + location.host + location.pathname + "?" + serialize(query);
+            }
+            
+            // convert URL params to javascript map
+            function parseQuery(queryString) {
+                var query = {};
+                var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+                for (var i = 0; i < pairs.length; i++) {
+                    var pair = pairs[i].split('=');
+                    pair[1] = pair[1].replace(/\+/g, '%20'); // handele + sign problem in query
+                    query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+                }
+                return query;
+            }
+
+            // convert javascript map to URL params
+            function serialize(obj) {
+                var str = [];
+                for (var p in obj)
+                    if (obj.hasOwnProperty(p)) {
+                        str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+                    }
+                return str.join("&");
+            }
+
+            // navigate to desired page
+            function gotoPage(start) {
+                // create map of querystring parameters, beware no duplicates allowed.
+                query = parseQuery(location.search);
+             
+                for (i = 0; i < filters.length; i++) {
+                    //url = url + encodeURIComponent(filters[i].key) + "/" + encodeURIComponent(filters[i].value) + "/";
+                    query[filters[i].key] = filters[i].value;
+                }
+                // if exist remove start parameter
+                query["start"] = start;
+                window.location = location.protocol + '//' + location.host + location.pathname + "?" + serialize(query);
+            }
+
+            // Jquery page load event
+            $(document).ready(function () {
+                // focus and move cursor to the end of the text
+                $("#q").focus();
+                $("#q").val($("#q").val());
+
+                {{ range.filters }}
+                $("#filter-{{index . 0}}").on('closed.bs.alert', function () {
+                    removeFilter("{{index . 0}}");
+                });
+                {{ end }}
+
+
+                $(".dropdown-menu a").click(function(){
+                    var selText = $(this).text();
+                    if (selText == "Kitap adında") {
+                        $("#w").val("title")
+                    } else {
+                        $("#w").val("content")
+                    }
+                    $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
+                    });
+                });
+
+        </script>
+</body>
+
+</html>
+{{end}}

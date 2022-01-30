@@ -1,0 +1,52 @@
+{{define "books"}}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Kitap listesi</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/bootstrap-4/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #fff;
+        }
+    </style>
+</head>
+
+<body style="padding-top:60px">
+    
+    {{template "navbar_search" .}}
+
+    <div class="container">
+        
+        <div class="row">
+            <div class="col-sm-12">
+                <h3 class="text-center">Kitap listesi</h3>
+            </div>
+            {{range .books}}
+            <div class="col-sm-12">
+                <div><a href="/download/?book={{.Hash}}">{{.Title}}</a></div>
+            </div>
+            {{end}}
+        </div>
+            
+    </div>
+
+    
+
+    <script src="/static/jquery/jquery-3.3.1.min.js"></script>
+    <script>
+        
+        $(document).ready(function(){ 
+
+        });
+           
+    </script>
+
+</body>
+</html>
+{{end}}

@@ -1,0 +1,44 @@
+{{define "facet"}}
+
+{{if .genreFacet}}
+<div class="facet-header">Türü</div>
+{{range $facet := .genreFacet}}
+<div class="facet-item" onclick="addFilter({key:'genre', value:'{{$facet.Key}}'})">{{$facet.Key}}
+    <span class="facet-count">({{$facet.DocCount}})</span>
+</div>
+{{end}}
+<br> 
+{{end}} 
+
+{{if .departmentFacet}}
+<div class="facet-header">Kuvveti</div>
+{{range $facet := .departmentFacet}}
+<div class="facet-item" onclick="addFilter({key:'department', value:'{{$facet.Key}}'})">{{$facet.Key}}
+    <span class="facet-count">({{$facet.DocCount}})</span>
+</div>
+{{end}}
+<br> 
+{{end}} 
+
+{{if .categoryFacet}}
+<div class="facet-header">Kategori</div>
+{{range $facet := .categoryFacet}}
+<div class="facet-item" onclick="addFilter({key:'category', value:'{{$facet.Name}}'})">{{$facet.Name}}
+    <span class="facet-count">({{$facet.Count}})</span>
+</div>
+{{end}}
+<br> 
+{{end}} 
+
+
+{{if .yearFacet}}
+<div class="facet-header">Basım yılı</div>
+{{range $facet := .yearFacet}}
+<div class="facet-item" onclick="addFilter({key:'year', value:'{{$facet.Key}}'})">{{$facet.Key}}
+    <span class="facet-count">({{$facet.DocCount}})</span>
+</div>
+{{end}}
+<br> 
+{{end}}
+
+{{end}}

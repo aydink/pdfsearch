@@ -1,0 +1,10 @@
+pdfsearch.exe
+pdfsearch
+books/
+poppler/
+data/
+mehaz/
+static/images/*.png
+book_index_test.go
+sentence.go
+.DS_Store

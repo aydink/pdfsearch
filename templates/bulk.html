@@ -1,0 +1,35 @@
+{{define "bulk_upload"}}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Yeni kitap ekle</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/bootstrap-4/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #fff;
+        }
+    </style>
+    <script src="/static/dropzone/dropzone.min.js"></script>
+</head>
+
+<body style="padding-top:60px">    
+    {{template "navbar_search" .}}
+
+    <div class="container">
+        <div class="row">
+            <form action="/upload" class="dropzone">
+                <div class="fallback">
+                  <input name="file" type="file" multiple />
+                </div>
+              </form>
+        </div>
+    </div>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,293 @@
+{{define "document"}}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Kitap Arama Motoru</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/static/bootstrap-4/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+
+        div.card {
+            border: none;
+        }
+
+        div.facet-header {
+            font-size: large;
+            font-weight: bold;
+        }
+
+        div.facet-item {
+            cursor: pointer;
+        }
+
+        span.facet-count {
+            color: #bbb;
+        }
+
+        div.hit-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: blue;
+        }
+        
+        div.hit-content {
+
+        }
+
+        em {
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        /* Container holding the image and the text */
+        .image-container {
+            position: relative;
+            text-align: center;
+            color: grey;
+            font-size: 48px;
+        }
+
+        /* Bottom left text */
+        .bottom-left {
+            bottom: 8px;
+            left: 16px;
+        }
+
+        /* Top left text */
+        .top-left {
+            top: 16px;
+            left: 8px;
+        }
+       
+        .nav-button {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            font-weight: bolder;
+            border-radius: 50%;
+            background: #eee;
+            opacity: 0.5;
+            cursor: pointer;
+
+            -webkit-user-select: none;
+            user-select: none;
+            outline: 0;
+        }
+        .nav-button:hover { 
+            background-color: #aaa;
+            color: black;
+        }
+
+        /* Top right text */
+        .top-right {
+            top: 16px;
+            right: 8px;
+        }
+
+        /* Bottom right text */
+        .bottom-right {
+            bottom: 8px;
+            right: 16px;
+        }
+
+        /* Centered text */
+        .centered {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+
+            border: 16px solid #f3f3f3; /* Light grey */
+            border-top: 16px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        box {
+            position: absolute;
+            background-color: yellow;
+            opacity: 0.6;
+        }
+
+
+    </style>
+</head>
+
+<body style="padding-top:60px">
+    
+    {{template "navbar_search" .}}
+
+    <div class="container">
+    
+        <div class="row">
+            <div class="col-lg-12 card rounded-0">
+                <a style="margin: auto; font-size:larger" id="pdflink" href="#" onclick="openPdf()">{{.title}}</a>
+            </div>
+            <div class="col-lg-12 card rounded-0">
+                <div class="image-container" id="image_container">
+                    <img id="page" style="width:100%;" src="/image?page={{.image}}"/>
+                    <div onclick="loadPage(-1)" class="nav-button top-left"><</div>
+                    <div onclick="loadPage(1)" class="nav-button top-right">></div>
+                    <div onclick="loadPage(-1)" class="nav-button bottom-left"><</div>
+                    <div onclick="loadPage(1)" class="nav-button bottom-right">></div>
+                    <div id="spinner" style="display:none;" class="loader"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="/static/jquery/jquery-3.3.1.min.js"></script>
+<script src="/static/popper/popper.min.js"></script>
+<script src="/static/bootstrap-4/js/bootstrap.min.js"></script>
+<script>
+    
+    var currentPage ={{.curPage}};
+    var hash = {{.hash}};
+    var maxPage = {{.numPages}};
+    var pageId = {{.pageId}}
+    function loadPage(increment) {
+       
+
+        currentPage = currentPage + increment;
+        pageId = pageId + increment
+
+        if (currentPage == 0) {
+            currentPage = 1;
+            alert("Kitabın ilk sayfasındasınız!");
+            return;
+        }
+
+        if (currentPage == maxPage) {
+            currentPage = maxPage-1 ;
+            alert("Kitabın son sayfasındasınız!");
+            return;
+        }
+
+        // show loader
+        $("#spinner").show();
+
+        var img = $('<img/>');
+        //img.attr("src", "/static/images/" + hash + "-" + "-" + currentPage + ".png");
+        img.attr("src", "/image?page=" + hash + "-" + currentPage);
+        img.on('load', function() {
+            var src = $(this).attr('src');
+            $("#page").attr("src", "/image?page=" + hash + "-" + currentPage);
+            // replace page url
+            updateUrl();
+            // hide loader
+            $("#spinner").hide();
+            // load payloads for highlighting
+            loadPayloads(hash + "-" + currentPage, "{{.q}}");
+        });
+    }
+
+    $(document).ready(function(){
+        loadPayloads("{{.hash}}-{{.curPage}}", "{{.q}}");
+    });
+
+    // create highlight for each posting
+    function createDivs(posting, scale) {
+        //console.log(posting);
+        
+        XMin = parseInt(posting[0]*scale);
+        YMin = parseInt(posting[1]*scale);
+        XMax = parseInt(posting[2]*scale);
+        YMax = parseInt(posting[3]*scale);
+        //console.log(posting.XMin);
+        width = XMax-XMin;
+        heigth = YMax-YMin;
+        topt = YMin;
+        left = XMin;
+       
+        $('<div class="hl" style="position:absolute; opacity:0.35; background-color:#ccff15; width:'+width+'px;height:'+heigth+'px;top:'+topt+'px;left:'+left+'px;"/>').appendTo('#image_container');
+    }
+
+    function loadPayloads(page, q) { 
+        // clear previous highlights 
+        $(".hl").remove();
+        
+        $.get("/api/payloads", { page: page, q: q }, function(data) {
+                //console.log(data)
+                scale = 150/72;
+                //scale = scale*1108/1241;
+                scaledWidth = document.getElementById("page").width;
+                originalWidth = document.getElementById("page").naturalWidth;
+                //console.log(originalWidth, scaledWidth);
+                scale = scale*(scaledWidth/originalWidth);
+                //console.log(scale);
+
+                $.each(data, function( index, item ) {
+                    $.each(item, function( index, posting ) {
+                        createDivs(posting, scale);
+                    });
+                });
+            });
+    }
+
+    function openPdf() {
+        window.location.href = "/download/?book="+hash+"#page="+{{.curPage}};
+    }
+
+    function updateUrl() {
+        //var url = location.protocol + '//' + location.host + "/page?page=" + hash + "-" + currentPage + "&q=" + getQueryVariable("q");
+        var url = location.protocol + '//' + location.host + "/page?page=" + pageId + "&q=" + getQueryVariable("q");
+        window.location.replace(url);
+    }
+
+    function getQueryVariable(variable) {
+        var query = window.location.search.substring(1);
+        var vars = query.split('&');
+        for (var i = 0; i < vars.length; i++) {
+            var pair = vars[i].split('=');
+            if (decodeURIComponent(pair[0]) == variable) {
+                return decodeURIComponent(pair[1]);
+            }
+        }
+        console.log('Query variable %s not found', variable);
+    }
+
+        $(document).ready(function () {
+            $("body").keydown(function (event) {
+                if  ($('#q').is(':focus') == false) {
+                    if (event.which == 39) {
+                        loadPage(1);
+                        //event.preventDefault();
+                    }
+
+                    if (event.which == 37) {
+                        loadPage(-1);
+                        //event.preventDefault();
+                    }
+                }
+            });
+        });
+
+
+</script>
+</body>
+
+</html>
+{{end}}
