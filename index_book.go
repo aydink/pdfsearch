@@ -94,7 +94,6 @@ func preparePdfFile(path string) (string, error) {
 
 func processPdfFile(book Book) error {
 
-	//_, err := exec.Command("pdftocairo", "-png", "-singlefile", "-f", page, "-l", page, fileMap[hash], "static/images/"+hash+"-"+page).Output()
 	output, err := exec.Command("pdfinfo", "books/"+book.Hash+".pdf").Output()
 	if err != nil {
 		log.Println(err)

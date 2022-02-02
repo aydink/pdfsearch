@@ -33,15 +33,33 @@ func buildIndex() {
 	simpleHighlighter = inverted.NewSimpleHighlighter(analyzer)
 	spanHighlighter = inverted.NewSpanHighlighter(analyzer)
 
-	idx = inverted.NewInvertedIndex(analyzer)
+	if *flagInMermory {
+		idx = inverted.NewInvertedIndex(analyzer)
 
-	indexFiles()
-	idx.UpdateAvgFieldLen()
-	idx.BuildCategoryBitmap()
+		indexFiles()
+		idx.UpdateAvgFieldLen()
+		idx.BuildCategoryBitmap()
 
-	idx.MarshalIndex()
+		idx.MarshalIndex()
+
+		serializeBooks(booksMap)
+		serializePages(pagesMap)
+	} else {
+		idx = inverted.NewInvertedIndexFromFile(analyzer, false)
+		booksMap = deserializeBooks()
+		//fmt.Println(booksMap)
+		pagesMap = deserializePages()
+		//fmt.Println(pagesMap)
+	}
 
 	buildPayloadDatabase()
+	/*
+		idx = inverted.NewInvertedIndexFromFile(analyzer, false)
+		booksMap = deserializeBooks()
+		//fmt.Println(booksMap)
+		pagesMap = deserializePages()
+		//fmt.Println(pagesMap)
+	*/
 }
 
 func buildPayloadDatabase() {
@@ -94,12 +112,6 @@ func cleanUpBeforeExit() {
 		for sig := range c {
 			// sig is a ^C, handle it
 			fmt.Println(sig.String(), "Ctrl-C captured")
-
-			//closing pogreb database
-			//db.Sync()
-			//db.pg.Close()
-			//fmt.Println("Closing cdb database")
-			//pg.Close()
 			payloadStore.reader.Close()
 			os.Exit(0)
 		}
@@ -118,6 +130,7 @@ func GetBook(hash string) Book {
 
 var flagRebuild *bool
 var flagBuildPayload *bool
+var flagInMermory *bool
 
 func main() {
 
@@ -125,6 +138,7 @@ func main() {
 
 	flagRebuild = flag.Bool("rebuild", false, "rebuild index form scratch using csv file")
 	flagBuildPayload = flag.Bool("payload", false, "rebuild payload cdb file form scratch")
+	flagInMermory = flag.Bool("inmemory", true, "create an inmermoy index or open from disk")
 
 	flag.Parse()
 
@@ -142,10 +156,8 @@ func main() {
 	// build fulltext index
 	buildIndex()
 
-	http.HandleFunc("/test", test)
 	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/api/reindex", reindexHandler)
-
+	http.HandleFunc("/test", test)
 	http.HandleFunc("/search/", searchHandler)
 	http.HandleFunc("/page", pageHandler)
 	http.HandleFunc("/image", imageHandler)
@@ -159,8 +171,12 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	fmt.Println("--------------------------------------------------")
 	fmt.Println("Arama motorunu kullanmak için tarayıcı ile http://127.0.0.1:8080 adresine gidin")
+
+	openBrowser("http://127.0.0.1:8080/")
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
+
 }

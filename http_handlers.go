@@ -186,11 +186,6 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/images/"+hash+"-"+page+".png")
 }
 
-func reindexHandler(w http.ResponseWriter, r *http.Request) {
-	go reindexAllFiles()
-	fmt.Fprint(w, "Reindexing all pdf files")
-}
-
 func createImage(query string) {
 
 	parts := strings.Split(query, "-")
@@ -200,9 +195,8 @@ func createImage(query string) {
 	//fmt.Println("hash:", hash, "page:", page, "file:", fileMap[hash])
 
 	if _, err := os.Stat("static/images/" + hash + "-" + page + ".png"); os.IsNotExist(err) {
-		_, err := exec.Command("poppler/pdftocairo", "-png", "-singlefile", "-f", page, "-l", page, "books/"+hash+".pdf", "static/images/"+hash+"-"+page).Output()
+		_, err := exec.Command("pdftocairo", "-png", "-singlefile", "-f", page, "-l", page, "books/"+hash+".pdf", "static/images/"+hash+"-"+page).Output()
 		if err != nil {
-			//log.Fatalln(err)
 			log.Println(err)
 		}
 	} else {
