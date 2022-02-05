@@ -31,6 +31,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+
+		// Update index statistics
+		idx.UpdateAvgFieldLen()
+
 		data := make(map[string]interface{})
 		data["message"] = "Dosya başarıyla yüklendi."
 		t.ExecuteTemplate(w, "upload", data)

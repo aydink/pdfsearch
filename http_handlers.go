@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/aydink/inverted"
 )
 
 type HitResult struct {
@@ -85,7 +87,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	hits := idx.Search_Mixed_v2(q)
 
 	if len(category) > 0 {
-		hits = idx.FacetFilterCategory(hits, category)
+		hits = idx.FacetFilter(hits, category)
 	}
 
 	data := make(map[string]interface{})
@@ -277,4 +279,26 @@ func test(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintln(w, booksMap)
+}
+
+// send token statistics
+func resetIndexHandler(w http.ResponseWriter, r *http.Request) {
+	err := os.RemoveAll("books/")
+	if err != nil {
+		log.Println(err)
+	}
+	os.Mkdir("books", 0700)
+
+	booksMap = make(map[uint32]Book)
+	pagesMap = make(map[uint32]Page)
+
+	idx = inverted.NewInvertedIndex(turkishAnalyzer)
+
+	idx.UpdateAvgFieldLen()
+	idx.BuildCategoryBitmap()
+
+	fmt.Fprintln(w, idx.AnalyzeText("hello,world!"))
+
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintln(w, "all is ok")
 }

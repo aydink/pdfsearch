@@ -20,21 +20,21 @@ var spanHighlighter inverted.SpanHighlighter
 
 var payloadStore *CdbStore
 
-//var sentenceTokenizer *sentences.DefaultSentenceTokenizer
+var turkishAnalyzer *inverted.SimpleAnalyzer
 
 func buildIndex() {
 
-	analyzer := inverted.NewSimpleAnalyzer(inverted.NewSimpleTokenizer())
-	analyzer.AddTokenFilter(inverted.NewTurkishLowercaseFilter())
-	analyzer.AddTokenFilter(inverted.NewTurkishAccentFilter())
-	analyzer.AddTokenFilter(inverted.NewTurkishStemFilter())
+	turkishAnalyzer := inverted.NewSimpleAnalyzer(inverted.NewSimpleTokenizer())
+	turkishAnalyzer.AddTokenFilter(inverted.NewTurkishLowercaseFilter())
+	turkishAnalyzer.AddTokenFilter(inverted.NewTurkishAccentFilter())
+	turkishAnalyzer.AddTokenFilter(inverted.NewTurkishStemFilter())
 	//analyzer.AddTokenFilter(NewEnglishStemFilter())
 
-	simpleHighlighter = inverted.NewSimpleHighlighter(analyzer)
-	spanHighlighter = inverted.NewSpanHighlighter(analyzer)
+	simpleHighlighter = inverted.NewSimpleHighlighter(turkishAnalyzer)
+	spanHighlighter = inverted.NewSpanHighlighter(turkishAnalyzer)
 
 	if *flagInMermory {
-		idx = inverted.NewInvertedIndex(analyzer)
+		idx = inverted.NewInvertedIndex(turkishAnalyzer)
 
 		indexFiles()
 		idx.UpdateAvgFieldLen()
@@ -45,7 +45,7 @@ func buildIndex() {
 		serializeBooks(booksMap)
 		serializePages(pagesMap)
 	} else {
-		idx = inverted.NewInvertedIndexFromFile(analyzer, false)
+		idx = inverted.NewInvertedIndexFromFile(turkishAnalyzer, false)
 		booksMap = deserializeBooks()
 		//fmt.Println(booksMap)
 		pagesMap = deserializePages()
@@ -166,7 +166,7 @@ func main() {
 	http.HandleFunc("/books", booksHandler)
 	http.HandleFunc("/api/addbook", uploadHandler)
 	http.HandleFunc("/api/payloads", payloadHandler)
-	//http.HandleFunc("/upload", pdfUploadHandler)
+	http.HandleFunc("/reset", resetIndexHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	fmt.Println("--------------------------------------------------")
