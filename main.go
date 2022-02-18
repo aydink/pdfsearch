@@ -7,154 +7,70 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-
-	"github.com/aydink/inverted"
 )
 
-var booksMap map[uint32]Book
-var pagesMap map[uint32]Page
+var flagReindex *bool
+var flagPath *string
+var flagInMemory *bool
+var flagEnableNetwork *bool
 
-var idx *inverted.InvertedIndex
-var simpleHighlighter inverted.SimpleHighlighter
-var spanHighlighter inverted.SpanHighlighter
+var bookIndex *BookIndex
 
-var payloadStore *CdbStore
-
-var turkishAnalyzer *inverted.SimpleAnalyzer
-
-func buildIndex() {
-
-	turkishAnalyzer := inverted.NewSimpleAnalyzer(inverted.NewSimpleTokenizer())
-	turkishAnalyzer.AddTokenFilter(inverted.NewTurkishLowercaseFilter())
-	turkishAnalyzer.AddTokenFilter(inverted.NewTurkishAccentFilter())
-	turkishAnalyzer.AddTokenFilter(inverted.NewTurkishStemFilter())
-	//analyzer.AddTokenFilter(NewEnglishStemFilter())
-
-	simpleHighlighter = inverted.NewSimpleHighlighter(turkishAnalyzer)
-	spanHighlighter = inverted.NewSpanHighlighter(turkishAnalyzer)
-
-	if *flagInMermory {
-		idx = inverted.NewInvertedIndex(turkishAnalyzer)
-
-		indexFiles()
-		idx.UpdateAvgFieldLen()
-		idx.BuildCategoryBitmap()
-
-		idx.MarshalIndex()
-
-		serializeBooks(booksMap)
-		serializePages(pagesMap)
-	} else {
-		idx = inverted.NewInvertedIndexFromFile(turkishAnalyzer, false)
-		booksMap = deserializeBooks()
-		//fmt.Println(booksMap)
-		pagesMap = deserializePages()
-		//fmt.Println(pagesMap)
-	}
-
-	buildPayloadDatabase()
-	/*
-		idx = inverted.NewInvertedIndexFromFile(analyzer, false)
-		booksMap = deserializeBooks()
-		//fmt.Println(booksMap)
-		pagesMap = deserializePages()
-		//fmt.Println(pagesMap)
-	*/
+func isFlagSet(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }
 
-func buildPayloadDatabase() {
+func initBookIndex() {
 
-	var err error
+	if isFlagSet("path") {
 
-	if *flagBuildPayload {
-
-		payloadStore, err = NewCdbStore()
+		_, err := isDirectory(*flagPath)
 		if err != nil {
-			log.Println("Failed to create cdb file")
-			return
+			log.Fatalf("provided path is not a valid")
 		}
 
-		payloadStore.BuildDatabase()
-		payloadStore.Freeze()
+		bookIndex = NewBookIndex()
+		bookIndex.indexFiles(*flagPath)
+		bookIndex.buildPayloadDatabase()
+
+		return
+	}
+
+	if *flagReindex {
+		bookIndex = NewBookIndex()
+		bookIndex.reIndexFiles()
+		bookIndex.buildPayloadDatabase()
 	} else {
-
-		payloadStore, err = OpenCdbStore()
-		if err != nil {
-			log.Println("Failed to open cdb file")
-			return
-		}
+		bookIndex = OpenBookIndex()
 	}
 }
-
-func indexFiles() {
-
-	if *flagRebuild {
-		books, err := prepareBooks()
-		if err != nil {
-			fmt.Println("Failed to load book list csv file", err)
-			return
-		}
-
-		for i, book := range books {
-			book.Id = uint32(i)
-			booksMap[book.Id] = book
-			indexBook(book)
-		}
-	} else {
-		reindexAllFiles()
-	}
-}
-
-func cleanUpBeforeExit() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			// sig is a ^C, handle it
-			fmt.Println(sig.String(), "Ctrl-C captured")
-			payloadStore.reader.Close()
-			os.Exit(0)
-		}
-	}()
-}
-
-func GetBook(hash string) Book {
-	for _, v := range booksMap {
-		if v.Hash == hash {
-			return v
-		}
-	}
-
-	return Book{}
-}
-
-var flagRebuild *bool
-var flagBuildPayload *bool
-var flagInMermory *bool
 
 func main() {
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	flagRebuild = flag.Bool("rebuild", false, "rebuild index form scratch using csv file")
-	flagBuildPayload = flag.Bool("payload", false, "rebuild payload cdb file form scratch")
-	flagInMermory = flag.Bool("inmemory", true, "create an inmermoy index or open from disk")
+	flagReindex = flag.Bool("reindex", false, "rebuild inmemory index from existing pdf files")
+	flagInMemory = flag.Bool("inmemory", false, "create an inmemormoy index or open from disk")
+	flagEnableNetwork = flag.Bool("network", true, "enable access from local network")
+	flagPath = flag.String("path", "pdf", "path to pdf files that will be indexed")
 
 	flag.Parse()
 
-	fmt.Println(*flagRebuild)
-	fmt.Println(*flagBuildPayload)
-
-	booksMap = make(map[uint32]Book)
-	pagesMap = make(map[uint32]Page)
-
-	//go printMemUsage()
+	fmt.Printf("reindex index: %t\n", *flagReindex)
+	fmt.Printf("inmemory index:%t\n", *flagInMemory)
+	fmt.Printf("enable network access:%t\n", *flagEnableNetwork)
 
 	// capture Ctrl-C exit event
 	cleanUpBeforeExit()
 
 	// build fulltext index
-	buildIndex()
+	initBookIndex()
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/test", test)
@@ -166,7 +82,6 @@ func main() {
 	http.HandleFunc("/books", booksHandler)
 	http.HandleFunc("/api/addbook", uploadHandler)
 	http.HandleFunc("/api/payloads", payloadHandler)
-	http.HandleFunc("/reset", resetIndexHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	fmt.Println("--------------------------------------------------")
@@ -174,9 +89,27 @@ func main() {
 
 	openBrowser("http://127.0.0.1:8080/")
 
-	err := http.ListenAndServe(":8080", nil)
+	host := "127.0.0.1:8080"
+
+	if *flagEnableNetwork {
+		host = ":8080"
+	}
+	err := http.ListenAndServe(host, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
 
+}
+
+func cleanUpBeforeExit() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			// sig is a ^C, handle it
+			fmt.Println(sig.String(), "Ctrl-C captured")
+			//payloadStore.reader.Close()
+			os.Exit(0)
+		}
+	}()
 }

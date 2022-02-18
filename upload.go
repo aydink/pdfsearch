@@ -33,7 +33,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Update index statistics
-		idx.UpdateAvgFieldLen()
+		bookIndex.idx.UpdateAvgFieldLen()
 
 		data := make(map[string]interface{})
 		data["message"] = "Dosya başarıyla yüklendi."

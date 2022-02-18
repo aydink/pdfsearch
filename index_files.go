@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/csv"
-	"encoding/gob"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,56 +11,99 @@ import (
 	"strings"
 )
 
-func prepareBooks() ([]Book, error) {
+func prepareBooks(path string) ([]Book, error) {
 
-	file, err := os.Open("mehaz/kitap.csv")
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	r := csv.NewReader(file)
-	r.Comma = ';'
-	r.Comment = '#'
-
+	cvsFile := filepath.Join(path, "books.csv")
 	books := make([]Book, 0)
 
-	for {
-		record, err := r.Read()
-		log.Println(record)
-		if err == io.EOF {
-			break
-		}
+	// if folder has a "books.csv" file use it index files
+	// else scan path and subfolders for .pdf files
+	if ok, _ := exists(cvsFile); ok {
+
+		file, err := os.Open(cvsFile)
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 
-		book := Book{}
-		// remove file extention
-		lastIndex := strings.LastIndex(record[0], ".")
-		book.Title = record[0][0:lastIndex]
+		r := csv.NewReader(file)
+		r.Comma = ';'
+		r.Comment = '#'
 
-		categories := strings.Split(record[1], ",")
+		for {
+			record, err := r.Read()
+			log.Println(record)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
 
-		book.Category = append(book.Category, categories...)
+			book := Book{}
+			// remove file extention
+			lastIndex := strings.LastIndex(record[0], ".")
+			book.Title = record[0][0:lastIndex]
 
-		hash, err := preparePdfFile("mehaz/" + record[0])
-		if err != nil {
-			log.Println(err)
-			continue
-			//return nil, err
+			categories := strings.Split(record[1], ",")
+
+			book.Category = append(book.Category, categories...)
+
+			hash, err := preparePdfFile("mehaz/" + record[0])
+			if err != nil {
+				log.Println(err)
+				continue
+				//return nil, err
+			}
+
+			book.Hash = hash
+			books = append(books, book)
+
+			processPdfFile(book)
+
+			// save book struct as json file
+			saveBookMeta(book)
 		}
 
-		book.Hash = hash
-		books = append(books, book)
-
-		processPdfFile(book)
-
-		// save book struct as json file
-		saveBookMeta(book)
+	} else {
+		books = indexDirectory(path)
 	}
 
 	return books, nil
+}
+
+func indexDirectory(path string) []Book {
+
+	books := make([]Book, 0)
+
+	filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Println(err.Error())
+		} else {
+			ext := filepath.Ext(info.Name())
+			if strings.ToLower(ext) == ".pdf" {
+				book := Book{}
+				name := strings.TrimSuffix(info.Name(), ext)
+
+				book.Title = name
+				hash, err := preparePdfFile(path)
+				if err != nil {
+					log.Println(err)
+				}
+				book.Hash = hash
+				books = append(books, book)
+
+				processPdfFile(book)
+				saveBookMeta(book)
+
+				log.Printf("file name: %s\n", info.Name())
+			}
+		}
+
+		return nil
+	})
+
+	return books
 }
 
 func saveBookMeta(book Book) error {
@@ -110,62 +150,28 @@ func loadBookMeta(filename string) (Book, error) {
 	return book, err
 }
 
-func reindexAllFiles() {
-	fileInfos, err := ioutil.ReadDir("books")
-	if err != nil {
-		log.Printf("opening books directory failed.")
-		return
-	}
-
-	bookId := 0
-	for _, file := range fileInfos {
-		if filepath.Ext(file.Name()) == ".json" {
-			book, err := loadBookMeta(file.Name())
-			if err != nil {
-				log.Printf("loading file meta from json file:%s faied\n", err)
-				continue
-			}
-			book.Id = uint32(bookId)
-			log.Println(book)
-			indexBook(book)
-			bookId++
-
-			//store payload data in cdb file
-			//ProcessPayloadFile(book.Hash)
-		}
-	}
-}
-
-func indexBook(book Book) {
+func indexBook(book Book) error {
 	pages, err := getPages(book)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return err
 	}
 
 	book.NumPages = uint32(len(pages))
 
 	//log.Println(pages)
 
-	booksMap[uint32(book.Id)] = book
+	bookIndex.booksMap[uint32(book.Id)] = book
 
 	for _, page := range pages {
-		docId := idx.Add(page.Content, book.Category)
+		docId := bookIndex.idx.Add(page.Content, book.Category)
 		page.Id = docId
 		page.BookId = book.Id
-		pagesMap[docId] = page
+		bookIndex.pagesMap[docId] = page
 	}
 
 	//processPayload(book.Hash)
 	//syncPayload()
-}
 
-func gobEncode(tokens map[string][][4]int) []byte {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-
-	if err := enc.Encode(tokens); err != nil {
-		log.Fatal(err)
-	}
-
-	return buf.Bytes()
+	return nil
 }

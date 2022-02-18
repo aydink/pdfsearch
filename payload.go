@@ -90,13 +90,15 @@ func (db *CdbStore) BuildDatabase() {
 	}
 }
 
-func (db *CdbStore) Freeze() {
+func (db *CdbStore) Freeze() error {
 	r, err := db.writer.Freeze()
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	db.reader = r
+	return nil
 }
 
 func (db *CdbStore) ProcessBook(hash string) error {
@@ -167,7 +169,7 @@ func (db *CdbStore) ProcessBook(hash string) error {
 				token := strings.TrimSpace(z.Token().Data)
 
 				// use the same analyzer with pageIndex
-				parts := idx.AnalyzeText(token)
+				parts := bookIndex.idx.AnalyzeText(token)
 				for _, v := range parts {
 					tokens[v] = append(tokens[v], bbox)
 				}
@@ -276,7 +278,7 @@ func (db *CdbStore) SavePayload(key string, tokens map[string][][4]int) error {
 
 func (db *CdbStore) GetTokenPositions(page string, q string) string {
 
-	tokens := idx.AnalyzeText(q)
+	tokens := bookIndex.idx.AnalyzeText(q)
 	//log.Println(tokens)
 
 	filteredTokens := make(map[string][][4]int)
@@ -373,7 +375,7 @@ func CreatePayload(hash string) ([]byte, error) {
 				token := strings.TrimSpace(z.Token().Data)
 
 				// use the same analyzer with pageIndex
-				parts := idx.AnalyzeText(token)
+				parts := bookIndex.idx.AnalyzeText(token)
 				for _, v := range parts {
 					tokens[v] = append(tokens[v], bbox)
 				}

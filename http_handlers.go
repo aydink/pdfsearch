@@ -12,8 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/aydink/inverted"
 )
 
 type HitResult struct {
@@ -84,15 +82,15 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	templateName := "search"
 
-	hits := idx.Search_Mixed_v2(q)
+	hits := bookIndex.idx.Search_Mixed_v2(q)
 
 	if len(category) > 0 {
-		hits = idx.FacetFilter(hits, category)
+		hits = bookIndex.idx.FacetFilter(hits, category)
 	}
 
 	data := make(map[string]interface{})
 	data["q"] = q
-	data["categoryFacet"] = idx.GetFacetCounts(hits)
+	data["categoryFacet"] = bookIndex.idx.GetFacetCounts(hits)
 
 	totalHits := len(hits)
 	data["TotalHits"] = totalHits
@@ -119,10 +117,10 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		//log.Println(hit)
 
 		result := HitResult{}
-		result.Page = pagesMap[hit.DocId]
-		result.Book = booksMap[result.Page.BookId]
+		result.Page = bookIndex.pagesMap[hit.DocId]
+		result.Book = bookIndex.booksMap[result.Page.BookId]
 		//result.HlText = simpleHighlighter.Highlight("<b>", "</b>", pagesMap[hit.DocId].Content, q)
-		result.HlText = spanHighlighter.Highlight(pagesMap[hit.DocId].Content, 200, q)
+		result.HlText = bookIndex.spanHighlighter.Highlight(bookIndex.pagesMap[hit.DocId].Content, 200, q)
 
 		hitResults = append(hitResults, result)
 
@@ -147,8 +145,8 @@ func pageHandler(w http.ResponseWriter, r *http.Request) {
 		pageInt = 0
 	}
 
-	curPage := pagesMap[uint32(pageInt)]
-	curBook := booksMap[curPage.BookId]
+	curPage := bookIndex.pagesMap[uint32(pageInt)]
+	curBook := bookIndex.booksMap[curPage.BookId]
 	hash := curBook.Hash
 
 	image := hash + "-" + strconv.Itoa(int(curPage.PageNumber))
@@ -174,7 +172,7 @@ func payloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	//fmt.Fprint(w, GetTokenPositions(page, q))
-	fmt.Fprint(w, payloadStore.GetTokenPositions(page, q))
+	fmt.Fprint(w, bookIndex.payloadStore.GetTokenPositions(page, q))
 }
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +231,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book := GetBook(hash)
+	book := bookIndex.GetBook(hash)
 	name := book.Title
 
 	// if there is an explicit url prameter "force=true" then force browser to download not try to display the pdf file
@@ -251,7 +249,7 @@ func tokenStatHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=token_stats.txt")
 	w.Header().Set("Content-Type", "text/plain")
 
-	for _, v := range idx.TokenStats() {
+	for _, v := range bookIndex.idx.TokenStats() {
 		fmt.Fprintf(w, "%s\t%d\n", v.Name, v.Count)
 	}
 }
@@ -259,8 +257,8 @@ func tokenStatHandler(w http.ResponseWriter, r *http.Request) {
 func booksHandler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.New("").Funcs(funcMap).ParseGlob("templates/*.html"))
 
-	sorted := make([]Book, len(booksMap))
-	for _, book := range booksMap {
+	sorted := make([]Book, len(bookIndex.booksMap))
+	for _, book := range bookIndex.booksMap {
 		sorted = append(sorted, book)
 	}
 
@@ -278,27 +276,5 @@ func booksHandler(w http.ResponseWriter, r *http.Request) {
 func test(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintln(w, booksMap)
-}
-
-// send token statistics
-func resetIndexHandler(w http.ResponseWriter, r *http.Request) {
-	err := os.RemoveAll("books/")
-	if err != nil {
-		log.Println(err)
-	}
-	os.Mkdir("books", 0700)
-
-	booksMap = make(map[uint32]Book)
-	pagesMap = make(map[uint32]Page)
-
-	idx = inverted.NewInvertedIndex(turkishAnalyzer)
-
-	idx.UpdateAvgFieldLen()
-	idx.BuildCategoryBitmap()
-
-	fmt.Fprintln(w, idx.AnalyzeText("hello,world!"))
-
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintln(w, "all is ok")
+	fmt.Fprintln(w, bookIndex.booksMap)
 }

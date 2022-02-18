@@ -160,7 +160,7 @@ func parseTextFile(hash string) ([]string, error) {
 	content, err := ioutil.ReadFile("books/" + hash + ".txt")
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return nil, err
 	}
 

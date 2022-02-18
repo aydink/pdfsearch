@@ -1,0 +1,323 @@
+{{define "search_test"}}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Kitap Arama Motoru</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <style>
+        body {
+            margin: 0;
+        }
+
+        .wrapper {
+            min-height: 100vh;
+            background: #eee;
+            display: flex;
+            flex-direction: column;
+            padding: 5px;
+        }
+
+        .header,
+        .footer {
+            display: flex;
+            height: 50px;
+            
+            color: #fff;
+            flex-direction: row;
+            font-size: 1.5em;
+            align-items: center;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            background: #999;
+            color: #000;
+        }
+
+        .columns {
+            display: flex;
+            flex: 1;
+        }
+
+        .main {
+            flex: 1;
+            order: 2;
+            background: #ddd;
+        }
+
+        .sidebar-left {
+            width: 20%;
+            background: #fff;
+            order: 1;
+        }
+
+        .sidebar-right {
+            width: 20%;
+            order: 3;
+            background: #fff;
+        }
+
+        .brand {
+            color: #000;
+            width: 20%;
+            /*background: #ccc;*/
+            order: 1;
+        }
+
+        .search-box {
+            flex: 1;
+            order: 2;
+            /*background: #eee;*/
+            flex-grow: 4;
+            font-size: 1.5em;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            
+        }
+
+        .admin {
+            display: flex;
+            width: 20%;
+            background: #ccc;
+            order: 3;
+            justify-content: space-evenly;
+        }
+
+        .button {
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            padding: 5px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1.5em;
+            border-radius: 5px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        a.visited {
+            text-decoration: none;
+        }
+
+        .button1 {background-color: #4CAF50;} /* Green */
+        .button2 {background-color: #008CBA;} /* Blue */
+        .button3 {background-color: #f44336;} /* Red */ 
+        .button4 {background-color: #e7e7e7; color: black;} /* Gray */ 
+        .button5 {background-color: #555555;} /* Black */
+        .button1 {font-size: 10px;}
+        .button2 {font-size: 12px;}
+        .button3 {font-size: 16px;}
+        .button4 {font-size: 20px; flex-grow: 1;}
+        .button5 {font-size: 24px;}
+
+        .input-search {      
+            flex-grow: 4;
+            padding: 5px 5px;
+            display: inline-block;
+            font-size: 0.6em;
+        }
+
+        form {
+            display: flex;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+        }
+
+        .page-link {
+            padding: 10px 10px;
+            text-align: center;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <header class="header">
+            <div class="brand">
+            <a>Kitap arama motoru</a>
+             </div>
+             <div class="search-box">
+                <form method="GET" action="/search/">
+                    <input class="input-search" type="text" name="q" id="q" value="{{.q}}" aria-label="Aramak istediğiniz ifadeyi yazınız">
+                    <button class="button button4" type="submit" name="w" value="content">Ara</button>
+                </form>
+            </div>
+    
+    <div class="admin">
+        <a href="/api/addbook">Kitap ekle</a> &nbsp;
+        <a href="/books">Kitaplar</a> 
+    </div>
+
+
+    </header>
+    <section class="content">
+        <div class="columns">
+            <main class="main">
+                <div><b>Bulunan kayıt sayısı:</b> {{.TotalHits}}</div>
+                <br>
+                {{range $index, $hit := .hits}}
+                <br>
+                <h4><a href="/page?page={{$hit.Page.Id}}&q={{$.q}}">{{$hit.Book.Title}}</a></h4>
+                <div class="hit-content">{{tohtml $hit.HlText}}</div>
+                
+                
+                {{else}}
+                <div>Aradığınız <strong>{{.q}}</strong> ile ilgili hiçbir arama sonucu mevcut değil.</div>
+                <ul>
+                    <li>Tüm kelimeleri doğru yazdığınızdan emin olun.</li>
+                    <li>Başka anahtar kelimeleri deneyin.</li>
+                    <li>Daha genel anahtar kelimeleri deneyin.</li>
+                </ul>
+                {{end}} 
+                
+                {{template "pagination" .}}
+
+            </main>
+            <aside class="sidebar-left">
+                {{template "facet" .}}
+            </aside>
+            <aside class="sidebar-right">Sidebar second: Fixed width</aside>
+        </div>
+    </section>
+    <footer class="footer">Footer: Fixed height</footer>
+    </div>
+
+
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="/static/jquery/jquery-3.2.1.slim.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("input:first").focus();
+        });
+    </script>
+
+    <script>
+
+    var filters = [];
+    {{ range.filters }} filters.push({ "key": "{{index . 0}}", "value": "{{index . 2}}" });
+    {{ end }}
+
+    function addFilter(filter) {
+
+        for (i = 0; i < filters.length; i++) {
+            if (filter.key == filters[i].key) {
+                return;
+            }
+        }
+        filters.push(filter);
+        console.log(filters);
+
+        // refresh page with new filters
+        refreshFilters();
+    }
+
+    function removeFilter(key) {
+        var temp = [];
+        for (i = 0; i < filters.length; i++) {
+            console.log("key:", key, filters[i]);
+            if (key != filters[i].key) {
+                temp.push(filters[i]);
+            }
+        }
+
+        filters = temp;
+
+        console.log(filters);
+        
+        // refresh page with new filters
+        refreshFilters();
+    }
+
+    function refreshFilters() {
+        // create map of querystring parameters, beware no duplicates allowed.
+        query = parseQuery(location.search);
+        delete query["category"];
+
+        for (i = 0; i < filters.length; i++) {
+            //url = url + encodeURIComponent(filters[i].key) + "/" + encodeURIComponent(filters[i].value) + "/";
+            query[filters[i].key] = filters[i].value;
+
+        }
+        // if exist remove start parameter
+        delete query["start"];
+
+        window.location = location.protocol + '//' + location.host + location.pathname + "?" + serialize(query);
+    }
+    
+    // convert URL params to javascript map
+    function parseQuery(queryString) {
+        var query = {};
+        var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+        for (var i = 0; i < pairs.length; i++) {
+            var pair = pairs[i].split('=');
+            pair[1] = pair[1].replace(/\+/g, '%20'); // handele + sign problem in query
+            query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+        }
+        return query;
+    }
+
+    // convert javascript map to URL params
+    function serialize(obj) {
+        var str = [];
+        for (var p in obj)
+            if (obj.hasOwnProperty(p)) {
+                str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+            }
+        return str.join("&");
+    }
+
+    // navigate to desired page
+    function gotoPage(start) {
+        // create map of querystring parameters, beware no duplicates allowed.
+        query = parseQuery(location.search);
+     
+        for (i = 0; i < filters.length; i++) {
+            //url = url + encodeURIComponent(filters[i].key) + "/" + encodeURIComponent(filters[i].value) + "/";
+            query[filters[i].key] = filters[i].value;
+        }
+        // if exist remove start parameter
+        query["start"] = start;
+        window.location = location.protocol + '//' + location.host + location.pathname + "?" + serialize(query);
+    }
+
+    // Jquery page load event
+    $(document).ready(function () {
+        // focus and move cursor to the end of the text
+        $("#q").focus();
+        $("#q").val($("#q").val());
+
+        {{ range.filters }}
+        $("#filter-{{index . 0}}").on('closed.bs.alert', function () {
+            removeFilter("{{index . 0}}");
+        });
+        {{ end }}
+
+
+        $(".dropdown-menu a").click(function(){
+            var selText = $(this).text();
+            if (selText == "Kitap adında") {
+                $("#w").val("title")
+            } else {
+                $("#w").val("content")
+            }
+            $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
+            });
+        });
+
+    </script>
+</body>
+
+</html>
+{{end}}

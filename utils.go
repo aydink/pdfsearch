@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -45,6 +46,20 @@ func exists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// exists returns whether the given file or directory exists or not
+func isDirectory(path string) (bool, error) {
+	if fileInfo, err := os.Stat(path); !os.IsNotExist(err) {
+		if fileInfo.IsDir() {
+			return true, nil
+		} else {
+			return false, errors.New("'" + path + "' is not a valid path")
+		}
+	} else {
+		return false, err
+	}
+
 }
 
 type byValue []uint32
