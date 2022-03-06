@@ -8,3 +8,4 @@ static/images/*.png
 book_index_test.go
 sentence.go
 .DS_Store
+workspace.code-workspace

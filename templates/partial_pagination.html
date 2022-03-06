@@ -29,17 +29,10 @@
 
 {{end}}
 
-{{define "pagination_test"}} 
+{{define "pagination_"}} 
 
 {{if .TotalHits}}
-<div class="pagination">
-    
-    {{range $page := .pages}}
-    <div class="page-item{{if $page.Active}} active{{end}} ">
-        <a class="page-link" href="#" onclick="gotoPage({{$page.Start}})">{{$page.Page}}</a>
-    </div>
-    {{end}}
-</div>
+    {{paginate .pages}}
 {{end}}
 
 {{end}}

@@ -57,7 +57,7 @@ func main() {
 
 	flagReindex = flag.Bool("reindex", false, "rebuild inmemory index from existing pdf files")
 	flagInMemory = flag.Bool("inmemory", false, "create an inmemormoy index or open from disk")
-	flagEnableNetwork = flag.Bool("network", true, "enable access from local network")
+	flagEnableNetwork = flag.Bool("network", false, "enable access from local network")
 	flagPath = flag.String("path", "pdf", "path to pdf files that will be indexed")
 
 	flag.Parse()

@@ -44,6 +44,7 @@ func getFilters(v url.Values) [][3]string {
 	for _, name := range filterNames {
 		if v.Get(name) != "" {
 			filters = append(filters, [3]string{name, getFullFilterName(name), v.Get(name)})
+			filters = v["category"]
 		}
 	}
 	return filters
@@ -80,6 +81,10 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		startInt = 0
 	}
 
+	if startInt < 0 {
+		startInt = 0
+	}
+
 	templateName := "search"
 
 	hits := bookIndex.idx.Search_Mixed_v2(q)
@@ -105,6 +110,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			hits = hits[startInt:]
 		}
 	}
+
+	data["currentPage"] = startInt
+
 	/*
 		if len(hits) > 10 {
 			hits = hits[0:10]
