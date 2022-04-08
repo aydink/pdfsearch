@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 )
 
 var flagReindex *bool
 var flagPath *string
+var flagPort *int
 var flagInMemory *bool
 var flagEnableNetwork *bool
 
@@ -56,11 +58,18 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	flagReindex = flag.Bool("reindex", false, "rebuild inmemory index from existing pdf files")
-	flagInMemory = flag.Bool("inmemory", false, "create an inmemormoy index or open from disk")
-	flagEnableNetwork = flag.Bool("network", false, "enable access from local network")
+	flagInMemory = flag.Bool("inmemory", false, "create an inmemory index or open from disk")
+	flagEnableNetwork = flag.Bool("network", true, "enable access from local network")
 	flagPath = flag.String("path", "pdf", "path to pdf files that will be indexed")
+	flagPort = flag.Int("port", 8080, "http server port, default to 8080")
 
 	flag.Parse()
+
+	if (*flagPort < 1) || (*flagPort > 65535) {
+		log.Fatalln("http port is not valid, must be within 1 to 65535 range")
+	}
+
+	port := strconv.Itoa(*flagPort)
 
 	fmt.Printf("reindex index: %t\n", *flagReindex)
 	fmt.Printf("inmemory index:%t\n", *flagInMemory)
@@ -85,15 +94,16 @@ func main() {
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	fmt.Println("--------------------------------------------------")
-	fmt.Println("Arama motorunu kullanmak için tarayıcı ile http://127.0.0.1:8080 adresine gidin")
+	fmt.Println("Arama motorunu kullanmak için tarayıcı ile http://127.0.0.1:" + port + " adresine gidin")
 
-	openBrowser("http://127.0.0.1:8080/")
-
-	host := "127.0.0.1:8080"
+	host := "127.0.0.1:" + port
 
 	if *flagEnableNetwork {
-		host = ":8080"
+		host = ":" + port
 	}
+
+	openBrowser("http://127.0.0.1:" + port)
+
 	err := http.ListenAndServe(host, nil)
 	if err != nil {
 		fmt.Println(err)

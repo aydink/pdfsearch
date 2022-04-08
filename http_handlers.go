@@ -44,7 +44,7 @@ func getFilters(v url.Values) [][3]string {
 	for _, name := range filterNames {
 		if v.Get(name) != "" {
 			filters = append(filters, [3]string{name, getFullFilterName(name), v.Get(name)})
-			filters = v["category"]
+			//filters = v["category"]
 		}
 	}
 	return filters
