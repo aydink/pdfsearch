@@ -24,9 +24,13 @@ func JoinStringSlice(s []string, separator string) string {
 	return strings.Join(s, separator)
 }
 
-func Pager(pages []PaginationItem) template.HTML {
+func Pager(numPages int, pages []PaginationItem) template.HTML {
 
 	html := "<div class=\"pagination\">\n"
+
+	if numPages > 10 {
+		html += fmt.Sprintf("<a href=\"#\" onclick=\"gotoPage(0)\">İlk</a>\n")
+	}
 
 	for _, page := range pages {
 		if page.Active {
@@ -35,6 +39,11 @@ func Pager(pages []PaginationItem) template.HTML {
 			html += fmt.Sprintf("<a href=\"#\" onclick=\"gotoPage(%d)\">%d</a>\n", page.Start, page.Page)
 		}
 	}
+
+	if numPages > 10 {
+		html += fmt.Sprintf("<a href=\"#\" onclick=\"gotoPage(%d)\">Son</a>\n", (numPages-1)*10)
+	}
+
 	html += "</div>"
 
 	return template.HTML(html)

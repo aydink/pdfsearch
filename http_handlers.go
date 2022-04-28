@@ -44,9 +44,21 @@ func getFilters(v url.Values) [][3]string {
 	for _, name := range filterNames {
 		if v.Get(name) != "" {
 			filters = append(filters, [3]string{name, getFullFilterName(name), v.Get(name)})
-			filters = v["category"]
+			//filters = v["category"]
 		}
 	}
+	return filters
+}
+
+func getFilters2(v url.Values) []string {
+
+	filters := make([]string, 0)
+	s := v.Get("category")
+
+	if s != "" {
+		filters = strings.Split(s, ":")
+	}
+
 	return filters
 }
 
@@ -62,7 +74,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	v := r.URL.Query()
-	filters := getFilters(v)
+	filters := getFilters2(v)
 
 	//t, err := template.ParseFiles("templates/search.html")
 	//t := template.Must(template.New("").Funcs(funcMap).ParseFiles("templates/search.html", "templates/partial_facet.html", "templates/partial_pagination.html", "templates/partial_definition.html"))
@@ -100,7 +112,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	totalHits := len(hits)
 	data["TotalHits"] = totalHits
 
-	data["pages"] = Paginate(startInt, 10, len(hits))
+	data["numPages"], data["pages"] = Paginate(startInt, 10, len(hits))
 	data["filters"] = filters
 
 	if startInt < totalHits {

@@ -97,10 +97,10 @@
             <div class="col-lg-6">
                 <div class="col-lg-12 card rounded-0">
                     <div class="row px-1">
-                        {{range .filters}}
-                        <div id="filter-{{index . 0}}" class="alert alert-secondary alert-dismissable mx-1">
+                        {{range $index, $element := .filters}}
+                        <div id="filter-{{$index}}" class="alert alert-secondary alert-dismissable mx-1">
                             <button type="button" class="close" data-dismiss="alert">&times;</button>
-                            {{index . 1}}: {{index . 2}} &nbsp;
+                            {{$element}} &nbsp;
                         </div>
                         {{end}}
                     </div>
@@ -117,11 +117,12 @@
                   
                             <br>
                             {{range $index, $hit := .hits}}
-                            <br>
+                            
                             <h4>
                                 <a href="/page?page={{$hit.Page.Id}}&q={{$.q}}">{{$hit.Book.Title}}</a>
                             </h4>
                             <div class="hit-content">{{tohtml $hit.HlText}}</div>
+                            <br>
                             
                             
                             {{else}}
@@ -162,13 +163,13 @@
         <script>
 
             var filters = [];
-            {{ range.filters }} filters.push({ "key": "{{index . 0}}", "value": "{{index . 2}}" });
+            {{ range .filters }} filters.push({ "key": "{{index . 0}}", "value": "{{index . 2}}" });
             {{ end }}
 
             function addFilter(filter) {
 
                 for (i = 0; i < filters.length; i++) {
-                    if (filter.key == filters[i].key) {
+                    if (filter.value == filters[i].value) {
                         return;
                     }
                 }
@@ -191,7 +192,6 @@
                 filters = temp;
 
                 console.log(filters);
-                
                 // refresh page with new filters
                 refreshFilters();
             }
@@ -199,9 +199,9 @@
             function refreshFilters() {
                 // create map of querystring parameters, beware no duplicates allowed.
                 query = parseQuery(location.search);
-                delete query["genre"];
-                delete query["department"];
-                delete query["year"];
+                //delete query["genre"];
+                //delete query["department"];
+                //delete query["year"];
                 delete query["category"];
 
                 for (i = 0; i < filters.length; i++) {
@@ -257,23 +257,13 @@
                 $("#q").focus();
                 $("#q").val($("#q").val());
 
-                {{ range.filters }}
-                $("#filter-{{index . 0}}").on('closed.bs.alert', function () {
-                    removeFilter("{{index . 0}}");
+                {{range $index, $element := .filters}}
+                $("#filter-{{$index}}").on('closed.bs.alert', function () {
+                    removeFilter("{{$index}}");
                 });
                 {{ end }}
 
-
-                $(".dropdown-menu a").click(function(){
-                    var selText = $(this).text();
-                    if (selText == "Kitap adında") {
-                        $("#w").val("title")
-                    } else {
-                        $("#w").val("content")
-                    }
-                    $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
-                    });
-                });
+            });
 
         </script>
 </body>

@@ -10,7 +10,7 @@ type PaginationItem struct {
 	Active bool
 }
 
-func Paginate(start, size, numHits int) []PaginationItem {
+func Paginate(start, size, numHits int) (int, []PaginationItem) {
 
 	if start > numHits {
 		start = 0
@@ -54,5 +54,5 @@ func Paginate(start, size, numHits int) []PaginationItem {
 		pages = append(pages, p)
 	}
 
-	return pages
+	return numPages, pages
 }

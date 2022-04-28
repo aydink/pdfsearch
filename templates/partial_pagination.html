@@ -32,7 +32,7 @@
 {{define "pagination_"}} 
 
 {{if .TotalHits}}
-    {{paginate .pages}}
+    {{paginate .numPages .pages}}
 {{end}}
 
 {{end}}
