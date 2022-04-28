@@ -14,7 +14,7 @@ var flagReindex *bool
 var flagPath *string
 var flagPort *int
 var flagInMemory *bool
-var flagEnableNetwork *bool
+var flagEnablePublicNetwork *bool
 
 var bookIndex *BookIndex
 
@@ -59,7 +59,7 @@ func main() {
 
 	flagReindex = flag.Bool("reindex", false, "rebuild inmemory index from existing pdf files")
 	flagInMemory = flag.Bool("inmemory", false, "create an inmemory index or open from disk")
-	flagEnableNetwork = flag.Bool("network", false, "enable access from local network")
+	flagEnablePublicNetwork = flag.Bool("public", false, "enable access from local network")
 	flagPath = flag.String("path", "pdf", "path to pdf files that will be indexed")
 	flagPort = flag.Int("port", 8080, "http server port, default to 8080")
 
@@ -73,7 +73,7 @@ func main() {
 
 	fmt.Printf("reindex index: %t\n", *flagReindex)
 	fmt.Printf("inmemory index:%t\n", *flagInMemory)
-	fmt.Printf("enable network access:%t\n", *flagEnableNetwork)
+	fmt.Printf("enable network access:%t\n", *flagEnablePublicNetwork)
 
 	// capture Ctrl-C exit event
 	cleanUpBeforeExit()
@@ -98,7 +98,7 @@ func main() {
 
 	host := "127.0.0.1:" + port
 
-	if *flagEnableNetwork {
+	if *flagEnablePublicNetwork {
 		host = ":" + port
 	}
 
